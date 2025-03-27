@@ -16,20 +16,18 @@ torch.use_deterministic_algorithms(True)
 
 OPTS = None
 
-# Todo: Change values for INPUT_DIM & NUM_CLASSES
-INPUT_DIM = 784  # = 28 * 28, total size of vector
+# Todo: Change values for INPUT_DIM & NUM_CLASSES --> Should be d (dim) * m (rounds) * n (games)
+INPUT_DIM = 3 # 
 NUM_CLASSES = 10  # Number of classes we are classifying over
 
 class ThreeLayerMLP(nn.Module):
     def __init__(self, hidden_dim=200, dropout_prob=0.0):
         super(ThreeLayerMLP, self).__init__()
 
-        ### BEGIN_SOLUTION 4e
         self.input_to_hidden = nn.Linear(INPUT_DIM, hidden_dim)
         self.hidden_to_hidden = nn.Linear(hidden_dim, hidden_dim)
         self.hidden_to_output = nn.Linear(hidden_dim, NUM_CLASSES)
         self.dropout = nn.Dropout(dropout_prob)
-        ### END_SOLUTION 4e
 
     def forward(self, x):
         """Output the predicted scores for each class.
@@ -58,3 +56,4 @@ class ThreeLayerMLP(nn.Module):
         output = F.softmax(output, dim=1)
 
         return output
+    
