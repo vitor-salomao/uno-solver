@@ -6,14 +6,15 @@
 # The cards on the player's hand
 # The number of cards each player has
 
+from typing import List
 import random
 import time
 
-NUM_SIMULATIONS = 1000
+NUM_SIMULATIONS = 1
 NUM_PLAYERS = 4
 SIMPLE = True
 
-def generate_deck():
+def generate_deck() -> List[str]:
     deck = []
     types = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "S", "R", "+2", "+4", "W"]
     for card in types:
@@ -32,12 +33,12 @@ def generate_deck():
                 deck.append(f"y_{card}")
     return deck
 
-def pull_card(deck, start = False):
+def pull_card(deck, start = False) -> str:
     if not deck:
         deck = generate_deck()
     index = random.randint(0, len(deck) - 1)
-    if start:
-        while deck[index] in ["+4", "W"]:
+    if start: # no action cards to start game
+        while deck[index][-2:] in ["+4", "_W", "_S", "_R", "+2"]:
             index = random.randint(0, len(deck) - 1)
     return deck.pop(index)
 
@@ -46,7 +47,7 @@ def buy_card(deck, cards):
         deck = generate_deck()
     cards.append(deck.pop())
 
-def play_card(deck, cards, top, randomly = True):
+def play_card(deck, cards, top, randomly = True) -> str:
     valid_cards = []
     # for now, just color or wild
     card_color = top[0]
@@ -70,7 +71,18 @@ def play_card(deck, cards, top, randomly = True):
         updated_card = f"{card_color}_{card}" if card in ["+4", "W"] else card
         return updated_card
 
-def generate_train_data(simple = False):
+def apply_effects(deck, cards, top):
+    # TODO: IMPLEMENT THIS
+    pass
+
+def update_player(current_player, reverse):
+    if reverse:
+        current_player = current_player - 1 if current_player > 0 else NUM_PLAYERS - 1
+    else:
+        current_player = (current_player + 1) % NUM_PLAYERS
+    return current_player
+
+def run_game(simple = False):
     deck = generate_deck()
     cards = [[],[],[],[]]
     for i in range(7): # Start deck
@@ -82,19 +94,27 @@ def generate_train_data(simple = False):
     gameover = False
     current_player = 0
     discard = [pull_card(deck, True)]
+    reverse = False
     while not gameover:
         top = discard[-1]
-        # TODO: IMPLEMENT CARD EFFECT
+        if top[-1] == "S":
+            print("================")
+            print(f"Player {current_player + 1} was skipped!")
+            current_player = update_player(current_player, reverse)
 
         print("================")
         print(f"Top card: {top}")
         print(f"Player {current_player + 1} has {cards[current_player]}.")
 
         card_played = play_card(deck, cards[current_player], top)
-        if card_played[0] != "!":
+        if card_played[0] != "!": # played a card
             discard.append(card_played)
+            if card_played[-1] == "R": # played a reverse
+                reverse = not reverse
+            else:
+                apply_effects(deck, cards[current_player], top)
             print(f"Player {current_player + 1} plays {card_played}")
-        else:
+        else: # bought card
             print(f"Player {current_player + 1} has bought {card_played[1:]}")
 
         print(f"Player {current_player + 1} now has {cards[current_player]}.")
@@ -104,12 +124,12 @@ def generate_train_data(simple = False):
             print(f"Player {current_player + 1} wins!")
             print("=*=*=*=*=*=*=*=*=*=")
 
-        current_player = (current_player + 1) % NUM_PLAYERS  # update player
+        current_player = update_player(current_player, reverse)
 
 def main():
     start_time = time.time()
     for _ in range(NUM_SIMULATIONS):
-        generate_train_data(SIMPLE)
+        run_game(SIMPLE)
     end_time = time.time()
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
 
