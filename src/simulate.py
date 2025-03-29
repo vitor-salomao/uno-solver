@@ -18,6 +18,7 @@ NUM_PLAYERS = 4
 SIMPLE = True
 
 finished_games = []
+won_games = []
 
 def generate_deck() -> List[str]:
     deck = []
@@ -190,6 +191,8 @@ def run_game_helper(games: List[Round], current_game: Round, simple = False):
             print("=*=*=*=*=*=*=*=*=*=")
             print(f"Player {future_game.get_current_player() + 1} wins!")
             print("=*=*=*=*=*=*=*=*=*=")
+            if (future_game.get_current_player() == 0):
+                won_games.append(future_game)
         
     for future_game, card_played in alternate_rounds:
         if (not future_game.over()):
@@ -210,7 +213,7 @@ def main():
         run_game([create_game_instance(SIMPLE)])
     end_time = time.time()
 
-    print(f"Number of games won: {len(finished_games)}")
+    print(f"\nNumber of games won by Player 1: {len(won_games)} of {len(finished_games)} games total.")
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
 
 if __name__ == '__main__':
