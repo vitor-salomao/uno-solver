@@ -83,48 +83,67 @@ def update_player(current_player, reverse):
     return current_player
 
 def run_game(simple = False):
+    # Initialize and shuffle the deck
     deck = generate_deck()
-    cards = [[],[],[],[]]
-    for i in range(7): # Start deck
+
+    # Deal 7 cards to each of the 4 players
+    cards = [[], [], [], []]
+    for i in range(7):
         cards[0].append(pull_card(deck))
         cards[1].append(pull_card(deck))
         cards[2].append(pull_card(deck))
         cards[3].append(pull_card(deck))
 
-    gameover = False
-    current_player = 0
-    discard = [pull_card(deck, True)]
-    reverse = False
+    gameover = False               # Flag to track when the game ends
+    current_player = 0            # Start with player 0
+    discard = [pull_card(deck, True)]  # Pick the starting card (non-action)
+    reverse = False               # Game direction: False = clockwise, True = counterclockwise
+
     while not gameover:
-        top = discard[-1]
+        top = discard[-1]  # Get the top card on the discard pile
+
+        # Handle skip cards (player loses their turn)
         if top[-1] == "S":
             print("================")
             print(f"Player {current_player + 1} was skipped!")
             current_player = update_player(current_player, reverse)
 
+        # Display current game state
         print("================")
         print(f"Top card: {top}")
         print(f"Player {current_player + 1} has {cards[current_player]}.")
 
+        # Attempt to play a valid card (or draw if none available)
         card_played = play_card(deck, cards[current_player], top)
-        if card_played[0] != "!": # played a card
-            discard.append(card_played)
-            if card_played[-1] == "R": # played a reverse
+
+        if card_played[0] != "!":  # If a valid card was played
+            discard.append(card_played)  # Add it to the discard pile
+
+            # If the card is a reverse card, toggle game direction
+            if card_played[-1] == "R":
                 reverse = not reverse
             else:
+                # Apply card effects if needed (to be implemented)
                 apply_effects(deck, cards[current_player], top)
+
             print(f"Player {current_player + 1} plays {card_played}")
-        else: # bought card
+        else:
+            # Card was drawn and couldn't be played
             print(f"Player {current_player + 1} has bought {card_played[1:]}")
 
+        # Show updated hand
         print(f"Player {current_player + 1} now has {cards[current_player]}.")
+
+        # Check for win condition (no more cards)
         if len(cards[current_player]) == 0:
             gameover = True
             print("=*=*=*=*=*=*=*=*=*=")
             print(f"Player {current_player + 1} wins!")
             print("=*=*=*=*=*=*=*=*=*=")
 
+        # Move to the next player based on the current direction
         current_player = update_player(current_player, reverse)
+
 
 def main():
     start_time = time.time()
