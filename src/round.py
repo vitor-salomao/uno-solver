@@ -1,10 +1,6 @@
 class Round:
-    # TODO: Add functionality to choose the next player
-    # TODO: For example, adding "reversed" data member and next player member function
-
-    # TODO: Store data from every round so that we can identify what we played, once the game is over.
-    # TODO: Only rounds that resulted in a win will use this stored data
-    def __init__(self, round: int, cards: list[list[str]], discard: list[str], deck: list[str], cards_played : list[str] = [], current_player : int = 0):
+    # TODO: Update code in round.py and simulate.py to use decorators for readability when we have enough time
+    def __init__(self, round: int, cards: list[list[str]], discard: list[str], deck: list[str], cards_played : list[str] = [], current_player : int = 0, round_data : list = []):
         # Stores the current round of the game
         self.round = round
         # Stores the cards for all players of the current round
@@ -19,6 +15,8 @@ class Round:
         self.current_player = current_player
         self.gameover = 0
         self.winner = None
+
+        self.round_data = round_data
         
     
     def get_round(self):
@@ -35,9 +33,6 @@ class Round:
     
     def get_deck(self):
         return self.deck
-    
-    # def remove_player_card(self, player: int, card_played: str):
-    #     pass
 
     def get_cards_played(self):
         return self.cards_played
@@ -60,3 +55,25 @@ class Round:
 
     def finish_game(self, winner):
         self.gameover = 1
+
+    def write_round_data(self):
+        """
+        Should store top card, our cards, other player cards (before we actually play the card)
+        Note that other information like our number of cards can be retrieved easily
+        
+        Other data can be added. It is so far formatted like this:
+        (top_card, our_cards[], length_of_other_player_cards x3)
+
+        This data is used to keep track of what the data was when we played our card
+        """
+        round_data = (self.get_top_card(), self.get_player_cards(0), len(self.get_player_cards(1)), len(self.get_player_cards(2)), len(self.get_player_cards(3)))
+        self.round_data.append(round_data)
+
+    def get_round_data(self):
+        """
+        Returns:
+            x: Features
+            y: Choices
+        """
+        return self.round_data, self.cards_played
+    

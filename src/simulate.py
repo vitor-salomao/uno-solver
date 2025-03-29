@@ -77,13 +77,13 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
         updated_card = f"{card_color}_{card}" if card in ["+4", "W"] else card
         return [(current_game, updated_card)]
     else:
-        # To ensure that we are not duplicating extra rounds
         seen_cards = []
         rounds = []
         for card in valid_cards:
-            if (card in seen_cards):
-                continue
+            # To ensure that we are not duplicating extra rounds
+            if (card in seen_cards): continue
             seen_cards.append(card)
+
             copied_all_player_cards = copy.deepcopy(current_game.cards)
             copied_all_player_cards[current_player].remove(card)
             card_to_record = f"{card_color}_{card}" if card in ["+4", "W"] else card
@@ -92,12 +92,16 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
 
             new_discard = copy.deepcopy(current_game.get_discard())
             new_deck = copy.deepcopy(current_game.get_deck())
+
+            new_round_data = copy.deepcopy(current_game.get_round_data()[0])
             rounds.append((Round(
                 current_game.round,
                 copied_all_player_cards,
                 new_discard,
                 new_deck,
-                new_cards_played
+                new_cards_played,
+                0, # can be 0 because this part of the code only runs when it's player 0's turn
+                new_round_data
             ), card_to_record))        
         return rounds
         
@@ -159,6 +163,7 @@ def run_game_helper(games: List[Round], current_game: Round, simple = False):
     if (current_game.get_current_player() != 0):
         alternate_rounds = play_card(current_game.get_deck(),current_game.get_player_cards(current_game.get_current_player()), top, current_game)
     else: # Only the "main player" will optimally play
+        current_game.write_round_data()
         alternate_rounds = play_card(current_game.get_deck(), current_game.get_player_cards(current_game.get_current_player()), top, current_game, False, current_game.get_current_player())
     
     i = 0
@@ -203,6 +208,7 @@ def run_game_helper(games: List[Round], current_game: Round, simple = False):
         # Move to the next player based on the current direction
 
 
+
 def main():
     start_time = time.time()
     random.seed(int(1743221737))
@@ -212,6 +218,14 @@ def main():
         # TODO: This only works for NUM_SIMULATIONS == 1
         run_game([create_game_instance(SIMPLE)])
     end_time = time.time()
+
+    cnt = 1
+    for i in won_games:
+        print(f"Game {cnt} of {len(won_games)} won games.")
+        print(i.get_round_data()[0], i.get_round_data()[1])
+        print(f"Object: {i}")
+        print("=*=*=*=*=*=*=*=*=*=")
+        cnt += 1
 
     print(f"\nNumber of games won by Player 1: {len(won_games)} of {len(finished_games)} games total.")
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
