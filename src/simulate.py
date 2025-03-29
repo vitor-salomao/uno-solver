@@ -222,7 +222,9 @@ def main():
     cnt = 1
     for i in won_games:
         print(f"Game {cnt} of {len(won_games)} won games.")
-        print(i.get_round_data()[0], i.get_round_data()[1])
+        print(f"Round Data: \n{i.get_round_data()[0]}") # Round Data
+        print(f"Cards Played: \n{i.get_round_data()[1]}") # Cards Played
+        print(f"Player 1 won in {len(i.get_round_data()[0])} and {len(i.get_round_data()[1])} rounds!")
         print(f"Object: {i}")
         print("=*=*=*=*=*=*=*=*=*=")
         cnt += 1

@@ -1,4 +1,10 @@
 class Round:
+    """
+    This object stores data of some variation of a game of Uno. Each instance is created when the main player (who is trying to play optimally) has to choose a card.
+    In order to find which cards are optimal, we are taking the Greedy approach, where we decide that the most optimal card to play is which ever one results in the
+    least cards left over. By creating many different variations of each game, we can figure out which choices eventually lead to a loss and which ones lead to a win.
+    If one variation results in the win, the data stored in that instance will be used to train the model.
+    """
     # TODO: Update code in round.py and simulate.py to use decorators for readability when we have enough time
     def __init__(self, round: int, cards: list[list[str]], discard: list[str], deck: list[str], cards_played : list[str] = [], current_player : int = 0, round_data : list = []):
         # Stores the current round of the game
@@ -75,5 +81,5 @@ class Round:
             x: Features
             y: Choices
         """
-        return self.round_data, self.cards_played
+        return (self.round_data, self.cards_played)
     
