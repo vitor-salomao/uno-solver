@@ -7,8 +7,11 @@
 # The number of cards each player has
 
 from typing import List
+from round import Round
+from collections import deque
 import random
 import time
+import copy
 
 NUM_SIMULATIONS = 1
 NUM_PLAYERS = 4
@@ -47,7 +50,7 @@ def buy_card(deck, cards):
         deck = generate_deck()
     cards.append(deck.pop())
 
-def play_card(deck, cards, top, randomly = True) -> str:
+def play_card(deck, cards: List[str], top, current_game: Round = None, randomly = True, current_player: int = 0) -> str:
     valid_cards = []
     # for now, just color or wild
     card_color = top[0]
@@ -62,14 +65,30 @@ def play_card(deck, cards, top, randomly = True) -> str:
             card = valid_cards[random.randint(0, len(valid_cards) - 1)]
             cards.remove(card)
             updated_card = f"{card_color}_{card}" if card in ["+4", "W"] else card
-            return updated_card
-        return f"!{cards[0]}"
+            return [(current_game,updated_card)]
+        return [(current_game, f"!{cards[0]}")]
 
     if randomly:
         card = valid_cards[random.randint(0, len(valid_cards) - 1)]
         cards.remove(card)
         updated_card = f"{card_color}_{card}" if card in ["+4", "W"] else card
-        return updated_card
+        return [(current_game, updated_card)]
+    else:
+        # To ensure that we are not duplicating extra rounds
+        seen_cards = []
+        rounds = []
+        for card in valid_cards:
+            if (card in seen_cards):
+                continue
+            seen_cards.append(card)
+            copied_all_player_cards = copy.deepcopy(current_game.cards)
+            copied_all_player_cards[current_player].remove(card)
+            rounds.append((Round(current_game.round, copied_all_player_cards, current_game.get_discard(), current_game.get_deck()), card))
+        return rounds
+        
+
+
+            
 
 def apply_effects(deck, cards, top):
     # TODO: IMPLEMENT THIS
@@ -82,7 +101,8 @@ def update_player(current_player, reverse):
         current_player = (current_player + 1) % NUM_PLAYERS
     return current_player
 
-def run_game(simple = False):
+
+def create_game_instance(simple = False):
     # Initialize and shuffle the deck
     deck = generate_deck()
 
@@ -93,16 +113,22 @@ def run_game(simple = False):
         cards[1].append(pull_card(deck))
         cards[2].append(pull_card(deck))
         cards[3].append(pull_card(deck))
+    # TODO: Fix Params
+    return Round(0, cards, [pull_card(deck, True)], deck)
+    
 
+def run_game(games, simple = False):
     gameover = False               # Flag to track when the game ends
     current_player = 0            # Start with player 0
-    discard = [pull_card(deck, True)]  # Pick the starting card (non-action)
     reverse = False               # Game direction: False = clockwise, True = counterclockwise
 
-    while not gameover:
-        top = discard[-1]  # Get the top card on the discard pile
 
-        # Handle skip cards (player loses their turn)
+    run_game_helper(games, games, simple)
+
+def run_game_helper(games: List[Round], current_game: Round, simple = False):
+    current_player = 0
+    while 1:
+        top = current_game.get_top_card()  # Get the top card on the discard pile
         if top[-1] == "S":
             print("================")
             print(f"Player {current_player + 1} was skipped!")
@@ -111,44 +137,56 @@ def run_game(simple = False):
         # Display current game state
         print("================")
         print(f"Top card: {top}")
-        print(f"Player {current_player + 1} has {cards[current_player]}.")
+        print(f"Player {current_player + 1} has {current_game.get_player_cards(current_player)}.")
 
         # Attempt to play a valid card (or draw if none available)
-        card_played = play_card(deck, cards[current_player], top)
+        # TODO: Make Sure that Player 1 (i = 0 can play); Implement the optimal card play; (change 3 -> 1)
+        if (current_player != 0):
+            alternate_rounds = play_card(current_game.get_deck(),current_game.get_player_cards(current_player), top, current_game)
+        else: # Only the "main player" will optimally play
+            alternate_rounds = play_card(current_game.get_deck(), current_game.get_player_cards(current_player), top, current_game, False, current_player)
+        
+        i = 0
+        for current_game, card_played in alternate_rounds:
+            i += 1
+            if card_played[0] != "!":  # If a valid card was played
+                print(f"version {i}")
+                current_game.get_discard().append(card_played)  # Add it to the discard pile
 
-        if card_played[0] != "!":  # If a valid card was played
-            discard.append(card_played)  # Add it to the discard pile
+                # If the card is a reverse card, toggle game direction
+                if card_played[-1] == "R":
+                    reverse = not reverse
+                else:
+                    # Apply card effects if needed (to be implemented)
+                    apply_effects(current_game.get_deck(), current_game.get_player_cards(current_player), top)
 
-            # If the card is a reverse card, toggle game direction
-            if card_played[-1] == "R":
-                reverse = not reverse
+                print(f"Player {current_player + 1} plays {card_played}")
             else:
-                # Apply card effects if needed (to be implemented)
-                apply_effects(deck, cards[current_player], top)
+                # Card was drawn and couldn't be played
+                print(f"Player {current_player + 1} has bought {card_played[1:]}")
 
-            print(f"Player {current_player + 1} plays {card_played}")
-        else:
-            # Card was drawn and couldn't be played
-            print(f"Player {current_player + 1} has bought {card_played[1:]}")
+            # Show updated hand
+            print(f"Player {current_player + 1} now has {current_game.get_player_cards(current_player)}.")
 
-        # Show updated hand
-        print(f"Player {current_player + 1} now has {cards[current_player]}.")
-
-        # Check for win condition (no more cards)
-        if len(cards[current_player]) == 0:
-            gameover = True
-            print("=*=*=*=*=*=*=*=*=*=")
-            print(f"Player {current_player + 1} wins!")
-            print("=*=*=*=*=*=*=*=*=*=")
-
+            # Check for win condition (no more cards)
+            if len(current_game.get_player_cards(current_player)) == 0:
+                gameover = True
+                print("=*=*=*=*=*=*=*=*=*=")
+                print(f"Player {current_player + 1} wins!")
+                print("=*=*=*=*=*=*=*=*=*=")
+                return
+        # TODO: Remove this return statement 
+        return
         # Move to the next player based on the current direction
+        # TODO: Fix functionality of reverse card -> add as a data member ?
         current_player = update_player(current_player, reverse)
 
 
 def main():
     start_time = time.time()
     for _ in range(NUM_SIMULATIONS):
-        run_game(SIMPLE)
+        # Using a deque to keep track of each new game instance
+        run_game(create_game_instance(SIMPLE))
     end_time = time.time()
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
 
