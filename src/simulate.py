@@ -68,6 +68,10 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
             card = valid_cards[random.randint(0, len(valid_cards) - 1)]
             cards.remove(card)
             updated_card = f"{card_color}_{card}" if card in ["+4", "W"] else card
+
+            # Only write when we (Player 1) have a card to play
+            if (current_game.get_current_player() == 0): current_game.write_round_data()
+
             return [(current_game,updated_card)]
         return [(current_game, f"!{cards[0]}")]
 
@@ -81,6 +85,7 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
         rounds = []
         for card in valid_cards:
             # To ensure that we are not duplicating extra rounds
+            #current_game.write_round_data() Cannot update here. Should update only in the new Round 
             if (card in seen_cards): continue
             seen_cards.append(card)
 
@@ -94,7 +99,8 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
             new_deck = copy.deepcopy(current_game.get_deck())
 
             new_round_data = copy.deepcopy(current_game.get_round_data()[0])
-            rounds.append((Round(
+
+            new_round_instance = Round(
                 current_game.round,
                 copied_all_player_cards,
                 new_discard,
@@ -102,7 +108,9 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
                 new_cards_played,
                 0, # can be 0 because this part of the code only runs when it's player 0's turn
                 new_round_data
-            ), card_to_record))        
+            )
+            new_round_instance.write_round_data()
+            rounds.append((new_round_instance, card_to_record)) 
         return rounds
         
 
@@ -146,7 +154,7 @@ def run_game(games, simple = False):
 
 def run_game_helper(games: List[Round], current_game: Round, simple = False):
     # This is the current player of whatever version of the game we are currently in
-    current_player = current_game.get_current_player()
+    # Unused: current_player = current_game.get_current_player()
     top = current_game.get_top_card()  # Get the top card on the discard pile
 
     if top[-1] == "S":
@@ -163,12 +171,10 @@ def run_game_helper(games: List[Round], current_game: Round, simple = False):
     if (current_game.get_current_player() != 0):
         alternate_rounds = play_card(current_game.get_deck(),current_game.get_player_cards(current_game.get_current_player()), top, current_game)
     else: # Only the "main player" will optimally play
-        current_game.write_round_data()
         alternate_rounds = play_card(current_game.get_deck(), current_game.get_player_cards(current_game.get_current_player()), top, current_game, False, current_game.get_current_player())
     
     i = 0
     # Note: "current_game" is previously a placeholder for the original version for the (possibly) multiple outcomes that come from it
-    # "current_game" in this for loop deals with the future versions of the original
     for future_game, card_played in alternate_rounds:
         i += 1
         if card_played[0] != "!":  # If a valid card was played
