@@ -61,6 +61,10 @@ class Round:
 
     def finish_game(self, winner):
         self.gameover = 1
+        self.winner = winner
+
+    def get_winner(self):
+        return self.winner
 
     def write_round_data(self):
         """

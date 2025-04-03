@@ -100,8 +100,9 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
 
             new_round_data = copy.deepcopy(current_game.get_round_data()[0])
 
+            # TODO: Increment Round Number (This is actually our Decision Number)
             new_round_instance = Round(
-                current_game.round,
+                current_game.round + 1,
                 copied_all_player_cards,
                 new_discard,
                 new_deck,
@@ -145,16 +146,10 @@ def create_game_instance(simple = False):
     
 
 def run_game(games, simple = False):
-    gameover = False               # Flag to track when the game ends
-    current_player = 0            # Start with player 0
-    reverse = False               # Game direction: False = clockwise, True = counterclockwise
-
     while (len(games) != 0): # goes through all versions of each game
         run_game_helper(games, games.pop(), simple) 
 
 def run_game_helper(games: List[Round], current_game: Round, simple = False):
-    # This is the current player of whatever version of the game we are currently in
-    # Unused: current_player = current_game.get_current_player()
     top = current_game.get_top_card()  # Get the top card on the discard pile
 
     if top[-1] == "S":
@@ -213,6 +208,19 @@ def run_game_helper(games: List[Round], current_game: Round, simple = False):
             finished_games.append(future_game)
         # Move to the next player based on the current direction
 
+def decisions(finished_games: List[Round]):
+    decisions = {}
+    for game in finished_games:
+        cards_played = game.get_round_data()[1]
+        for i in range(len(cards_played)):
+            round_tracker = f"_0{i}" if ((i - 10) < 0) else f"_{i}"
+            cards_tracker = cards_played[i] + round_tracker
+            if (not (cards_tracker in decisions)) and (game.get_winner() == 0):
+                decisions[cards_tracker] = 1
+            elif (game.get_winner() == 0):
+                decisions[cards_tracker] += 1 if (game.get_winner() == 0) else 0
+    print(f"Decisions: {decisions}")
+    return decisions
 
 
 def main():
@@ -234,6 +242,14 @@ def main():
         print(f"Object: {i}")
         print("=*=*=*=*=*=*=*=*=*=")
         cnt += 1
+    
+    # Returns dictionary of card_round# : games won
+    decision = decisions(finished_games)
+    
+    # TODO: Add loop to get data from when that card was played. The round data is stored in key[-2:] (use try-except block b/c of seg faults)
+    # TODO: Example - b_1_00 means b_1 card was played at round 0
+    # TODO: Fetch round data from round to track the data. When finished, clean code to reduce unneccessary space & time waste
+    
 
     print(f"\nNumber of games won by Player 1: {len(won_games)} of {len(finished_games)} games total.")
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
