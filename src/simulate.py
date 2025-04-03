@@ -17,7 +17,7 @@ NUM_SIMULATIONS = 1
 NUM_PLAYERS = 4
 SIMPLE = True
 
-finished_games = []
+finished_games: List[Round] = []
 won_games = []
 
 def generate_deck() -> List[str]:
@@ -219,7 +219,6 @@ def decisions(finished_games: List[Round]):
                 decisions[cards_tracker] = 1
             elif (game.get_winner() == 0):
                 decisions[cards_tracker] += 1 if (game.get_winner() == 0) else 0
-    print(f"Decisions: {decisions}")
     return decisions
 
 
@@ -246,9 +245,21 @@ def main():
     # Returns dictionary of card_round# : games won
     decision = decisions(finished_games)
     
-    # TODO: Add loop to get data from when that card was played. The round data is stored in key[-2:] (use try-except block b/c of seg faults)
-    # TODO: Example - b_1_00 means b_1 card was played at round 0
     # TODO: Fetch round data from round to track the data. When finished, clean code to reduce unneccessary space & time waste
+    for key,val in decision.items():
+        round_num = int(key[-2:])
+        s = key
+        card = s.split("_")
+        card = "_".join(card[:2])  # joins the first two parts with '_'
+        for game in finished_games:
+            # To prevent seg fault if a Round instance ends early
+            try:
+                cards = game.get_cards_played()
+                if (card == cards[round_num] or ('W' in card and 'W' in cards[round_num])):
+                    # TODO: Potentially fix game.get_round_data() -> Does not contain card played at that round. Could be a problem?
+                    print(f"Card {card} was played with this data: \n {game.get_round_data()[0][round_num]}, at round #{round_num + 1}")
+            except:
+                pass
     
 
     print(f"\nNumber of games won by Player 1: {len(won_games)} of {len(finished_games)} games total.")
