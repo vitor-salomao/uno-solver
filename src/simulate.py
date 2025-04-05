@@ -13,12 +13,14 @@ import random
 import time
 import copy
 
-NUM_SIMULATIONS = 1
+NUM_SIMULATIONS = 100
 NUM_PLAYERS = 4
 SIMPLE = True
 
 finished_games: List[Round] = []
 won_games = []
+games = []
+colors = ["r", "g", "b", "y"]
 
 def generate_deck() -> List[str]:
     deck = []
@@ -56,7 +58,7 @@ def buy_card(deck, cards):
 def play_card(deck, cards: List[str], top, current_game: Round = None, randomly = True, current_player: int = 0) -> str:
     valid_cards = []
     # for now, just color or wild
-    card_color = top[0]
+    card_color = colors[random.randint(0, len(colors) - 1)]
     card_type = top[-2:]
     for card in cards:
         if card in ["+4", "W"] or card_color == card[0] or card_type == card[-2:]:
@@ -114,10 +116,6 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
             rounds.append((new_round_instance, card_to_record)) 
         return rounds
         
-
-
-            
-
 def apply_effects(deck, cards, top):
     # TODO: IMPLEMENT THIS -> Might have to be added to Round obj
     pass
@@ -147,9 +145,9 @@ def create_game_instance(simple = False):
 
 def run_game(games, simple = False):
     while (len(games) != 0): # goes through all versions of each game
-        run_game_helper(games, games.pop(), simple) 
+        run_game_helper(games.pop(), simple) 
 
-def run_game_helper(games: List[Round], current_game: Round, simple = False):
+def run_game_helper(current_game: Round, simple = False):
     top = current_game.get_top_card()  # Get the top card on the discard pile
 
     if top[-1] == "S":
@@ -229,7 +227,8 @@ def main():
     for _ in range(NUM_SIMULATIONS):
         # Using a deque to keep track of each new game instance
         # TODO: This only works for NUM_SIMULATIONS == 1
-        run_game([create_game_instance(SIMPLE)])
+        games.append(create_game_instance(SIMPLE))
+    run_game(games)
     end_time = time.time()
 
     cnt = 1
@@ -245,7 +244,6 @@ def main():
     # Returns dictionary of card_round# : games won
     decision = decisions(finished_games)
     
-    # TODO: Fetch round data from round to track the data. When finished, clean code to reduce unneccessary space & time waste
     for key,val in decision.items():
         round_num = int(key[-2:])
         s = key
