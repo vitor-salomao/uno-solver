@@ -12,8 +12,10 @@ from collections import deque
 import random
 import time
 import copy
+import csv
+import os
 
-NUM_SIMULATIONS = 100
+NUM_SIMULATIONS = 10000
 NUM_PLAYERS = 4
 SIMPLE = True
 
@@ -102,7 +104,6 @@ def play_card(deck, cards: List[str], top, current_game: Round = None, randomly 
 
             new_round_data = copy.deepcopy(current_game.get_round_data()[0])
 
-            # TODO: Increment Round Number (This is actually our Decision Number)
             new_round_instance = Round(
                 current_game.round + 1,
                 copied_all_player_cards,
@@ -151,14 +152,14 @@ def run_game_helper(current_game: Round, simple = False):
     top = current_game.get_top_card()  # Get the top card on the discard pile
 
     if top[-1] == "S":
-        print("================")
-        print(f"Player {current_game.get_current_player() + 1} was skipped!")
+        #print("================")
+        #print(f"Player {current_game.get_current_player() + 1} was skipped!")
         current_game.update_player(NUM_PLAYERS)
 
     # Display current game state
-    print("================")
-    print(f"Top card: {top}")
-    print(f"Player {current_game.get_current_player() + 1} has {current_game.get_player_cards(current_game.get_current_player())}.")
+    #print("================")
+    # print(f"Top card: {top}")
+    # print(f"Player {current_game.get_current_player() + 1} has {current_game.get_player_cards(current_game.get_current_player())}.")
 
     # Attempt to play a valid card (or draw if none available)
     if (current_game.get_current_player() != 0):
@@ -171,7 +172,7 @@ def run_game_helper(current_game: Round, simple = False):
     for future_game, card_played in alternate_rounds:
         i += 1
         if card_played[0] != "!":  # If a valid card was played
-            print(f"version {i}")
+            #print(f"version {i}")
             future_game.get_discard().append(card_played)  # Add it to the discard pile
 
             # If the card is a reverse card, toggle game direction
@@ -181,20 +182,21 @@ def run_game_helper(current_game: Round, simple = False):
                 # Apply card effects if needed (to be implemented)
                 apply_effects(future_game.get_deck(), future_game.get_player_cards(future_game.get_current_player()), top)
 
-            print(f"Player {future_game.get_current_player() + 1} plays {card_played}")
+            #print(f"Player {future_game.get_current_player() + 1} plays {card_played}")
         else:
             # Card was drawn and couldn't be played
-            print(f"Player {future_game.get_current_player() + 1} has bought {card_played[1:]}")
+            #print(f"Player {future_game.get_current_player() + 1} has bought {card_played[1:]}")
+            pass
 
         # Show updated hand
-        print(f"Player {future_game.get_current_player() + 1} now has {future_game.get_player_cards(future_game.get_current_player())}.")
+        #print(f"Player {future_game.get_current_player() + 1} now has {future_game.get_player_cards(future_game.get_current_player())}.")
 
         # Check for win condition (no more cards)
         if len(future_game.get_player_cards(future_game.get_current_player())) == 0:
             future_game.finish_game(future_game.get_current_player())
-            print("=*=*=*=*=*=*=*=*=*=")
-            print(f"Player {future_game.get_current_player() + 1} wins!")
-            print("=*=*=*=*=*=*=*=*=*=")
+            #print("=*=*=*=*=*=*=*=*=*=")
+            #print(f"Player {future_game.get_current_player() + 1} wins!")
+            #print("=*=*=*=*=*=*=*=*=*=")
             if (future_game.get_current_player() == 0):
                 won_games.append(future_game)
         
@@ -226,23 +228,31 @@ def main():
     print(f"Using seed: {int(start_time)}")
     for _ in range(NUM_SIMULATIONS):
         # Using a deque to keep track of each new game instance
-        # TODO: This only works for NUM_SIMULATIONS == 1
         games.append(create_game_instance(SIMPLE))
     run_game(games)
     end_time = time.time()
 
-    cnt = 1
-    for i in won_games:
-        print(f"Game {cnt} of {len(won_games)} won games.")
-        print(f"Round Data: \n{i.get_round_data()[0]}") # Round Data
-        print(f"Cards Played: \n{i.get_round_data()[1]}") # Cards Played
-        print(f"Player 1 won in {len(i.get_round_data()[0])} and {len(i.get_round_data()[1])} rounds!")
-        print(f"Object: {i}")
-        print("=*=*=*=*=*=*=*=*=*=")
-        cnt += 1
+    # cnt = 1
+    # for i in won_games:
+    #     print(f"Game {cnt} of {len(won_games)} won games.")
+    #     print(f"Round Data: \n{i.get_round_data()[0]}") # Round Data
+    #     print(f"Cards Played: \n{i.get_round_data()[1]}") # Cards Played
+    #     print(f"Player 1 won in {len(i.get_round_data()[0])} and {len(i.get_round_data()[1])} rounds!")
+    #     print(f"Object: {i}")
+    #     print("=*=*=*=*=*=*=*=*=*=")
+    #     cnt += 1
     
     # Returns dictionary of card_round# : games won
     decision = decisions(finished_games)
+    output_path = "uno_dataset.csv"
+    file_exists = os.path.isfile(output_path)
+
+    csv_file = open(output_path, "a", newline='')
+    writer = csv.writer(csv_file)
+
+    # Only write header once
+    if not file_exists:
+        writer.writerow(["played_card", "top_card", "hand", "p2", "p3", "p4"])
     
     for key,val in decision.items():
         round_num = int(key[-2:])
@@ -254,11 +264,26 @@ def main():
             try:
                 cards = game.get_cards_played()
                 if (card == cards[round_num] or ('W' in card and 'W' in cards[round_num])):
-                    # TODO: Potentially fix game.get_round_data() -> Does not contain card played at that round. Could be a problem?
-                    print(f"Card {card} was played with this data: \n {game.get_round_data()[0][round_num]}, at round #{round_num + 1}")
+                    arr = copy.deepcopy(game.get_round_data()[0][round_num][1])
+                    arr.append(card)
+                    arr.sort() # So that the card is not always the last one
+                    top_card = game.get_round_data()[0][round_num][0]
+                    player_2_card_num = game.get_round_data()[0][round_num][2]
+                    player_3_card_num = game.get_round_data()[0][round_num][3]
+                    player_4_card_num = game.get_round_data()[0][round_num][4]
+                    #print(card, top_card, arr, player_2_card_num, player_3_card_num, player_4_card_num)
+
+                    writer.writerow([
+                        card,
+                        top_card,
+                        ",".join(arr),  # Convert hand list to comma-separated string
+                        player_2_card_num,
+                        player_3_card_num,
+                        player_4_card_num
+                    ])
             except:
                 pass
-    
+    csv_file.close()
 
     print(f"\nNumber of games won by Player 1: {len(won_games)} of {len(finished_games)} games total.")
     print(f"\n{NUM_SIMULATIONS} games ran in {end_time - start_time} seconds.")
