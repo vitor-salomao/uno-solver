@@ -3,18 +3,19 @@ from gym_env import UnoEnv
 from model import DQNAgent
 
 # HYPER-PARAMETERS
-NUM_EPISODES = 10000
+NUM_EPISODES = 50000
 BATCH_SIZE = 128
 TARGET_UPDATE = 1000  # steps
 EPS_START = 1.0
-EPS_END = 0.1
-EPS_DECAY = 5000
+EPS_END = 0.01
+EPS_DECAY = 3000
+DISCOUNT_FACTOR = 0.90
 
 play_counts, draw_counts = [], []
 
 def main():
     env = UnoEnv()
-    agent = DQNAgent(state_dim=219, action_dim=109, gamma=0.95)
+    agent = DQNAgent(state_dim=219, action_dim=109, gamma=DISCOUNT_FACTOR)
     total_steps = 0
 
     for ep in range(1, NUM_EPISODES + 1):

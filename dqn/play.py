@@ -1,50 +1,53 @@
 import torch
 from gym_env import UnoEnv
-from model import QNetwork
+from model import QNetwork, DQNAgent
 
 NUM_GAMES = 1000
 LOG_ACTIONS = False
 
-def play_one_game(policy_path="uno_dqn.pth", render=False):
+def play_one_game(policy_path="uno_dqn.pth"):
     env = UnoEnv()
     net = QNetwork(state_dim=219, action_dim=109)
-
-    # load the trained weights
+    agent = DQNAgent(state_dim=219, action_dim=109)
+    agent.policy_net = net                            # inject your network
     net.load_state_dict(torch.load(policy_path))
-    net.eval()   # turn off dropout/batch-norm, if any
+    net.eval()
 
     state, _ = env.reset()
     state = torch.from_numpy(state)
-
     done = False
-    total_reward = 0.0
+    total_r = 0.0
+    wins = 0
 
-    # play until done
     while not done:
-        if LOG_ACTIONS: env.render()
-        with torch.no_grad():
-            # greedy - pick the highest-Q legal move
-            q_vals = net(state.unsqueeze(0)).squeeze()
-            action = int(q_vals.argmax().item())
+        if LOG_ACTIONS:
+            env.render()
+        # eps=0 --> fully greedy, masked
+        action = agent.select_action(state, 0.0, env)
 
-        # step environment
-        next_state, reward, done, info = env.step(action)
-        total_reward += reward
+        next_obs, reward, done, info = env.step(action)
+        total_r += reward
 
-        # log actions
-        if render:
-            print(f"Agent played action {action}, reward={reward:.1f}")
+        if LOG_ACTIONS:
+            if "bought" in info and info["bought"] is not None:
+                print(f"Agent chose action {action} | bought card = {info['bought']} | reward={reward:.2f}")
             if "card" in info and info["card"] is not None:
-                print(f"Agent played card {info["card"].value} {info["card"].color}")
+                print(f"Agent chose action {action} | card = {info['card']} | reward={reward:.2f}")
+            if "winner" in info and info["winner"] is not None:
+                print(f"Player {info['winner']} wins!")
+                if info["winner"] == 0:
+                    wins += 1
+        state = torch.from_numpy(next_obs)
 
-        state = torch.from_numpy(next_state)
-
-    return total_reward
+    return total_r, wins
 
 if __name__ == "__main__":
     wins = 0
-    for i in range(NUM_GAMES):
-        r = play_one_game(render=LOG_ACTIONS)
-        if r > 0:  # positive reward = good
-            wins += 1
-    print(f"Out of {NUM_GAMES} games, agent won {wins} times ({wins/NUM_GAMES:.2%})")
+    well_played = 0
+    for _ in range(NUM_GAMES):
+        rewards, win = play_one_game()
+        if rewards > 0:
+            well_played += 1
+        wins += win
+    print(f"Win rate: {wins}/{NUM_GAMES} = {wins/NUM_GAMES:.2%}")
+    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%}")

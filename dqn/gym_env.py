@@ -10,10 +10,10 @@ from gym.utils import seeding
 # PARAMETERS
 REWARD_WIN = 5.0
 REWARD_LOSE = -5.0
-REWARD_LEGAL = 1.0
-REWARD_ILLEGAL = -1.0
-REWARD_DRAW = -0.5
-REWARD_STEP = -0.01
+REWARD_LEGAL = 2.0
+REWARD_ILLEGAL = -2.0
+REWARD_DRAW = -1.0
+REWARD_STEP = -0.05
 
 # card struct
 class Card:
@@ -133,14 +133,14 @@ class UnoEnv(gym.Env):
         hand = self.hands[self.current_player]
         done = False
         reward = 0.0
-        played_card = None
+        played_card, bought_card, winner = None, None, None
 
         # play
         if action < len(hand):
             card = hand[action]
             if not self._is_playable(card):
                 # illegal move penalized
-                reward = REWARD_ILLEGAL
+                reward += REWARD_ILLEGAL
                 done = True
                 return self._encode_obs(), reward, done, {"card": card}
             reward += REWARD_LEGAL
@@ -150,10 +150,12 @@ class UnoEnv(gym.Env):
             # draw action
             reward += REWARD_DRAW
             drawn = self._draw_cards(self.current_player, 1)
+            bought_card = drawn[0]
             # if drawn[0] is playable, play it
             if self._is_playable(drawn[0]):
                 reward += REWARD_LEGAL
                 self._play_card(self.current_player, drawn[0])
+                played_card = drawn[0]
             self._advance_to_next()
 
         reward += REWARD_STEP
@@ -169,14 +171,17 @@ class UnoEnv(gym.Env):
 
         # opponents play
         while self.current_player != 0 and not done:
+            player_idx = self.current_player
             self._opponent_play(self.current_player)
-            if len(self.hands[self.current_player]) == 0:
+            if len(self.hands[player_idx]) == 0:
                 reward = REWARD_LOSE  # opponent won
+                winner = player_idx
                 done = True
                 break
 
-        return self._encode_obs(), reward, done, {"card": played_card}
+        return self._encode_obs(), reward, done, {"card": played_card, "bought": bought_card, "winner": winner}
 
+    # model feature vector
     def _encode_obs(self):
         hand, top = self.hands[self.current_player], self.top
         vec_hand = np.zeros(108, dtype=np.float32)
@@ -230,7 +235,7 @@ class UnoEnv(gym.Env):
           - 'skip': call advance twice
           - 'reverse': flip self.direction *= -1
           - 'draw_two': next player draws 2 then skip them
-          - 'wild': you’ll need a policy to pick the color
+          - 'wild': pick most abundant color
           - 'wild_draw_four': same + next draws 4
         """
         if card.value == 'skip':
@@ -245,20 +250,17 @@ class UnoEnv(gym.Env):
             self._advance_to_next()
             self._advance_to_next()
         elif card.value == 'wild':
-            # choose most abundant color in your hand
             chosen = self._choose_color(self.hands[self.current_player])
             self.top.color = chosen
             self._advance_to_next()
         elif card.value == 'wild_draw_four':
             target = (self.current_player + self.direction) % 4
             self._draw_cards(target, 4)
-            # choose most abundant color in your hand
             chosen = self._choose_color(self.hands[self.current_player])
             self.top.color = chosen
             self._advance_to_next()
             self._advance_to_next()
         else:
-            # normal number card
             self._advance_to_next()
 
     def _advance_to_next(self):
@@ -283,7 +285,7 @@ class UnoEnv(gym.Env):
         return cards
 
     def _choose_color(self, hand: List[Card]) -> str:
-        """Example heuristic: pick the color you have most of."""
+        """Heuristic: pick the color you have most of."""
         counts = Counter(c.color for c in hand if c.color != 'wild')
         if not counts:
             # only wild cards
