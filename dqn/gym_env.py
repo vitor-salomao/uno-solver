@@ -10,9 +10,10 @@ from gym.utils import seeding
 # PARAMETERS
 REWARD_WIN = 5.0
 REWARD_LOSE = -5.0
-REWARD_LEGAL = 0.1
+REWARD_LEGAL = 1.0
 REWARD_ILLEGAL = -1.0
-REWARD_DRAW = -0.1
+REWARD_DRAW = -0.5
+REWARD_STEP = -0.01
 
 # card struct
 class Card:
@@ -154,6 +155,8 @@ class UnoEnv(gym.Env):
                 reward += REWARD_LEGAL
                 self._play_card(self.current_player, drawn[0])
             self._advance_to_next()
+
+        reward += REWARD_STEP
 
         # check win
         if len(self.hands[self.current_player]) == 0:

@@ -8,13 +8,13 @@ BATCH_SIZE = 128
 TARGET_UPDATE = 1000  # steps
 EPS_START = 1.0
 EPS_END = 0.1
-EPS_DECAY = 20000
+EPS_DECAY = 5000
 
 play_counts, draw_counts = [], []
 
 def main():
     env = UnoEnv()
-    agent = DQNAgent(state_dim=219, action_dim=109)
+    agent = DQNAgent(state_dim=219, action_dim=109, gamma=0.95)
     total_steps = 0
 
     for ep in range(1, NUM_EPISODES + 1):
@@ -52,9 +52,7 @@ def main():
         if ep % 100 == 0:
             avg_plays = sum(play_counts[-100:]) / 100
             avg_draws = sum(draw_counts[-100:]) / 100
-            print(f"Ep {ep:4d}: avg plays/draws per game over last 100 = "
-                  f"{avg_plays:.1f}/{avg_draws:.1f}")
-            print(f"Episode {ep:5d} | Steps {total_steps:7d} | EpReward {ep_reward:.2f}")
+            print(f"Episode {ep:5d} | Steps {total_steps:7d} | EpReward {ep_reward:.2f} | Plays/Draws = {avg_plays:.1f}/{avg_draws:.1f}")
 
     # save weights
     torch.save(agent.policy_net.state_dict(), "uno_dqn.pth")
