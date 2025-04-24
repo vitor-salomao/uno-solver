@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import deque, namedtuple
 
+from gym_env import UnoEnv
+
 Transition = namedtuple('Transition',
                         ('state','action','reward','next_state','done'))
 
@@ -47,13 +49,19 @@ class DQNAgent:
         self.buffer = ReplayBuffer()
         self.steps_done = 0
 
-    def select_action(self, state, eps_threshold):
-        # ε-greedy
+    def select_action(self, state, eps_threshold, env: UnoEnv):
         if random.random() < eps_threshold:
-            return random.randrange(self.policy_net.fc3.out_features)
-        with torch.no_grad():
-            q_vals = self.policy_net(state.unsqueeze(0))
-            return q_vals.argmax().item()
+            # sample uniformly from legal actions
+            legal = env.legal_actions()
+            return random.choice(legal)
+        else:
+            with torch.no_grad():
+                q_vals = self.policy_net(state.unsqueeze(0)).squeeze()
+            # mask illegal actions to a large negative value
+            legal = env.legal_actions()
+            mask = torch.full_like(q_vals, float('-inf'))
+            mask[legal] = q_vals[legal]
+            return int(mask.argmax().item())
 
     def optimize(self, batch_size):
         if len(self.buffer) < batch_size:

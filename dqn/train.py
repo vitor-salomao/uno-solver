@@ -2,35 +2,62 @@ import torch
 from gym_env import UnoEnv
 from model import DQNAgent
 
-env = UnoEnv()
-agent = DQNAgent(state_dim=219, action_dim=109)
+# HYPER-PARAMETERS
+NUM_EPISODES = 10000
+BATCH_SIZE = 128
+TARGET_UPDATE = 1000  # steps
+EPS_START = 1.0
+EPS_END = 0.1
+EPS_DECAY = 20000
 
-num_episodes = 20000
-batch_size = 128
-target_update = 1000  # steps
-eps_start, eps_end, eps_decay = 1.0, 0.1, 20000
+play_counts, draw_counts = [], []
 
 def main():
-    for ep in range(num_episodes):
-        state = torch.from_numpy(env.reset())
+    env = UnoEnv()
+    agent = DQNAgent(state_dim=219, action_dim=109)
+    total_steps = 0
+
+    for ep in range(1, NUM_EPISODES + 1):
+        state, _ = env.reset()  # unpack the (obs, info) tuple
+        state = torch.from_numpy(state)
         done = False
+        ep_reward = 0.0
+        plays = draws = 0
+
         while not done:
-            eps = eps_end + (eps_start - eps_end) * \
-                  max(0, (eps_decay - agent.steps_done) / eps_decay)
-            action = agent.select_action(state, eps)
+            # ε-greedy schedule
+            eps = EPS_END + (EPS_START - EPS_END) * max(0, (EPS_DECAY - total_steps) / EPS_DECAY)
+            action = agent.select_action(state, eps, env)
+            if action < len(env.hands[0]):
+                plays += 1
+            else:
+                draws += 1
+
             next_obs, reward, done, _ = env.step(action)
             next_state = torch.from_numpy(next_obs)
+
             agent.buffer.push(state, action, reward, next_state, done)
+            agent.optimize(BATCH_SIZE)
 
             state = next_state
-            agent.optimize(batch_size)
+            ep_reward += reward
+            total_steps += 1
 
-            agent.steps_done += 1
-            if agent.steps_done % target_update == 0:
+            if total_steps % TARGET_UPDATE == 0:
                 agent.update_target()
 
+        play_counts.append(plays)
+        draw_counts.append(draws)
+
         if ep % 100 == 0:
-            print(f"Episode {ep} complete")
+            avg_plays = sum(play_counts[-100:]) / 100
+            avg_draws = sum(draw_counts[-100:]) / 100
+            print(f"Ep {ep:4d}: avg plays/draws per game over last 100 = "
+                  f"{avg_plays:.1f}/{avg_draws:.1f}")
+            print(f"Episode {ep:5d} | Steps {total_steps:7d} | EpReward {ep_reward:.2f}")
+
+    # save weights
+    torch.save(agent.policy_net.state_dict(), "uno_dqn.pth")
 
 if __name__ == "__main__":
     main()
