@@ -2,7 +2,7 @@ import torch
 from gym_env import UnoEnv
 from model import QNetwork, DQNAgent
 
-NUM_GAMES = 2500
+NUM_GAMES = 10000
 LOG_ACTIONS = NUM_GAMES == 1
 MODEL_FILE = "uno_dqn1.pth"
 
@@ -18,7 +18,7 @@ def play_one_game(policy_path=MODEL_FILE):
     state = torch.from_numpy(state)
     done = False
     total_r = 0.0
-    wins = 0
+    total_wins = 0
 
     while not done:
         if LOG_ACTIONS:
@@ -37,10 +37,10 @@ def play_one_game(policy_path=MODEL_FILE):
             if "winner" in info and info["winner"] is not None:
                 print(f"Player {info['winner']} wins!")
         if "winner" in info and info["winner"] == 0:
-            wins += 1
+            total_wins += 1
         state = torch.from_numpy(next_obs)
 
-    return total_r, wins
+    return total_r, total_wins
 
 if __name__ == "__main__":
     wins = 0
@@ -53,4 +53,4 @@ if __name__ == "__main__":
         wins += win
         total_rewards += rewards
     print(f"Win rate: {wins}/{NUM_GAMES} = {wins/NUM_GAMES:.2%}")
-    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%} | Rewards: {total_rewards:.2f}")
+    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%} | Average reward: {total_rewards/NUM_GAMES:.2f}")
