@@ -2,7 +2,7 @@ import torch
 from gym_env import UnoEnv
 from model import QNetwork, DQNAgent
 
-NUM_GAMES = 1
+NUM_GAMES = 5000
 LOG_ACTIONS = NUM_GAMES == 1
 MODEL_FILE = "uno_dqn1.pth"
 
@@ -36,8 +36,8 @@ def play_one_game(policy_path=MODEL_FILE):
                 print(f"Agent chose action {action} | card = {info['card']} | reward={reward:.2f}")
             if "winner" in info and info["winner"] is not None:
                 print(f"Player {info['winner']} wins!")
-                if info["winner"] == 0:
-                    wins += 1
+        if "winner" in info and info["winner"] == 0:
+            wins += 1
         state = torch.from_numpy(next_obs)
 
     return total_r, wins
