@@ -45,10 +45,12 @@ def play_one_game(policy_path=MODEL_FILE):
 if __name__ == "__main__":
     wins = 0
     well_played = 0
+    total_rewards = 0
     for _ in range(NUM_GAMES):
         rewards, win = play_one_game()
         if rewards > 0:
             well_played += 1
         wins += win
+        total_rewards += rewards
     print(f"Win rate: {wins}/{NUM_GAMES} = {wins/NUM_GAMES:.2%}")
-    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%} | Rewards: {rewards:.2f}")
+    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%} | Rewards: {total_rewards:.2f}")
