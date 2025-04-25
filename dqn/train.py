@@ -3,13 +3,15 @@ from gym_env import UnoEnv
 from model import DQNAgent
 
 # HYPER-PARAMETERS
-NUM_EPISODES = 50000
+NUM_EPISODES = 1000
 BATCH_SIZE = 128
 TARGET_UPDATE = 1000  # steps
 EPS_START = 1.0
 EPS_END = 0.01
 EPS_DECAY = 3000
 DISCOUNT_FACTOR = 0.90
+
+SAVE_FILE = "uno_dqn1.pth" # "uno_dqn.pth"
 
 play_counts, draw_counts = [], []
 
@@ -56,7 +58,7 @@ def main():
             print(f"Episode {ep:5d} | Steps {total_steps:7d} | EpReward {ep_reward:.2f} | Plays/Draws = {avg_plays:.1f}/{avg_draws:.1f}")
 
     # save weights
-    torch.save(agent.policy_net.state_dict(), "uno_dqn.pth")
+    torch.save(agent.policy_net.state_dict(), SAVE_FILE)
 
 if __name__ == "__main__":
     main()

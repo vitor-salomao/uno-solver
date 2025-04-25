@@ -2,11 +2,12 @@ import torch
 from gym_env import UnoEnv
 from model import QNetwork, DQNAgent
 
-NUM_GAMES = 1000
-LOG_ACTIONS = False
+NUM_GAMES = 1
+LOG_ACTIONS = NUM_GAMES == 1
+MODEL_FILE = "uno_dqn1.pth"
 
-def play_one_game(policy_path="uno_dqn.pth"):
-    env = UnoEnv()
+def play_one_game(policy_path=MODEL_FILE):
+    env = UnoEnv(log=LOG_ACTIONS)
     net = QNetwork(state_dim=219, action_dim=109)
     agent = DQNAgent(state_dim=219, action_dim=109)
     agent.policy_net = net                            # inject your network
@@ -50,4 +51,4 @@ if __name__ == "__main__":
             well_played += 1
         wins += win
     print(f"Win rate: {wins}/{NUM_GAMES} = {wins/NUM_GAMES:.2%}")
-    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%}")
+    print(f"Well played: {well_played}/{NUM_GAMES} = {well_played/NUM_GAMES:.2%} | Rewards: {rewards:.2f}")

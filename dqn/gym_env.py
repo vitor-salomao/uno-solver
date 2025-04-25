@@ -8,11 +8,11 @@ from gym import spaces
 from gym.utils import seeding
 
 # PARAMETERS
-REWARD_WIN = 5.0
-REWARD_LOSE = -5.0
-REWARD_LEGAL = 2.0
+REWARD_WIN = 10.0
+REWARD_LOSE = -5.0 # changed to depend on cards left
+REWARD_LEGAL = 4.0
 REWARD_ILLEGAL = -2.0
-REWARD_DRAW = -1.0
+REWARD_DRAW = -5.0
 REWARD_STEP = -0.05
 
 # card struct
@@ -45,7 +45,6 @@ class Deck:
 
         deck = []
         idx = 0
-        # Number & action cards
         for color in colors:
             # zeros
             deck.append(Card(idx, color, '0')); idx += 1
@@ -56,8 +55,7 @@ class Deck:
             # action
             for a in action_cards:
                 deck.append(Card(idx, color, a)); idx += 1
-
-        # Wilds (no color)
+        # wild
         for _ in range(4):
             deck.append(Card(idx, 'wild', 'wild')); idx += 1
             deck.append(Card(idx, 'wild', 'wild_draw_four')); idx += 1
@@ -87,8 +85,9 @@ class Deck:
 class UnoEnv(gym.Env):
     metadata = {"render.modes": []}
 
-    def __init__(self):
+    def __init__(self, log = False):
         super().__init__()
+        self.log = log
         # state: hand (108 hot) + top card (108 hot) + 3 opp counts
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(108 + 108 + 3,), dtype=np.float32
@@ -163,23 +162,24 @@ class UnoEnv(gym.Env):
         # check win
         if len(self.hands[self.current_player]) == 0:
             if self.current_player == 0:
-                reward = REWARD_WIN  # agent win
+                reward += REWARD_WIN  # agent win
             else:
-                reward = REWARD_LOSE  # opponent won
+                reward += -len(self.hands[0])  # opponent won
             done = True
             return self._encode_obs(), reward, done, {}
 
+        info = {"card": played_card, "bought": bought_card, "winner": winner}
         # opponents play
         while self.current_player != 0 and not done:
             player_idx = self.current_player
             self._opponent_play(self.current_player)
             if len(self.hands[player_idx]) == 0:
-                reward = REWARD_LOSE  # opponent won
-                winner = player_idx
+                reward += -len(self.hands[0])  # opponent won
+                info["winner"] = player_idx
                 done = True
                 break
 
-        return self._encode_obs(), reward, done, {"card": played_card, "bought": bought_card, "winner": winner}
+        return self._encode_obs(), reward, done, info
 
     # model feature vector
     def _encode_obs(self):
@@ -300,9 +300,11 @@ class UnoEnv(gym.Env):
         for i, card in enumerate(self.hands[player_idx]):
             if self._is_playable(card):
                 self._play_card(player_idx, card)
+                if self.log: print(f"-- Player {player_idx} played {card}")
                 return
         # no playable card, just draw and move on
         self._draw_cards(player_idx, 1)
+        if self.log: print(f"-- Player {player_idx} bought {self.hands[player_idx][-1]}")
         self._advance_to_next()
 
     def _play_card(self, player_idx: int, card: Card):
