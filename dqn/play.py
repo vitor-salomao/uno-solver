@@ -2,7 +2,7 @@ import torch
 from gym_env import UnoEnv
 from model import QNetwork, DQNAgent
 
-NUM_GAMES = 5000
+NUM_GAMES = 2500
 LOG_ACTIONS = NUM_GAMES == 1
 MODEL_FILE = "uno_dqn1.pth"
 
@@ -10,7 +10,7 @@ def play_one_game(policy_path=MODEL_FILE):
     env = UnoEnv(log=LOG_ACTIONS)
     net = QNetwork(state_dim=219, action_dim=109)
     agent = DQNAgent(state_dim=219, action_dim=109)
-    agent.policy_net = net                            # inject your network
+    agent.policy_net = net  # inject your network
     net.load_state_dict(torch.load(policy_path))
     net.eval()
 

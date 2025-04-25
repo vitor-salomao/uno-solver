@@ -12,15 +12,18 @@ Transition = namedtuple('Transition',
 
 # network
 class QNetwork(nn.Module):
-    def __init__(self, state_dim=219, action_dim=109):
+    def __init__(self, state_dim=219, action_dim=109, dropout=0.1):
         super().__init__()
+        self.dropout = nn.Dropout(dropout)
         self.fc1 = nn.Linear(state_dim, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, action_dim)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
+        x = self.dropout(x)
         x = F.relu(self.fc2(x))
+        x = self.dropout(x)
         return self.fc3(x)
 
 # buffer
@@ -40,9 +43,9 @@ class ReplayBuffer:
 
 # agent for deep q-learning
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, lr=1e-4, gamma=0.99):
-        self.policy_net = QNetwork(state_dim, action_dim)
-        self.target_net = QNetwork(state_dim, action_dim)
+    def __init__(self, state_dim, action_dim, lr=1e-4, gamma=0.99, dropout=0.1):
+        self.policy_net = QNetwork(state_dim, action_dim, dropout)
+        self.target_net = QNetwork(state_dim, action_dim, dropout)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
         self.gamma = gamma

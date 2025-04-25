@@ -8,11 +8,12 @@ from gym import spaces
 from gym.utils import seeding
 
 # PARAMETERS
-REWARD_WIN = 10.0
-REWARD_LOSE = -5.0 # changed to depend on cards left
+REWARD_WIN = 15.0
+REWARD_LOSE_FLAT = 0.0
+REWARD_LOSE_MULT = 0.5  # this * number of cards left
 REWARD_LEGAL = 4.0
 REWARD_ILLEGAL = -2.0
-REWARD_DRAW = -5.0
+REWARD_DRAW = -7.5
 REWARD_STEP = -0.05
 
 # card struct
@@ -163,7 +164,7 @@ class UnoEnv(gym.Env):
         info = {"card": played_card, "bought": bought_card, "winner": winner}
         # check win
         if len(self.hands[0]) == 0:
-            reward += REWARD_WIN  # agent win
+            reward += REWARD_WIN  # agent won
             info["winner"] = 0
             done = True
             return self._encode_obs(), reward, done, info
@@ -173,7 +174,7 @@ class UnoEnv(gym.Env):
             player_idx = self.current_player
             self._opponent_play(self.current_player)
             if len(self.hands[player_idx]) == 0:
-                reward += -len(self.hands[0])  # opponent won
+                reward = REWARD_LOSE_FLAT + REWARD_LOSE_MULT * len(self.hands[0])  # opponent won
                 info["winner"] = player_idx
                 done = True
                 break
