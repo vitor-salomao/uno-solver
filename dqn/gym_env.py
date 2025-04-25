@@ -105,6 +105,7 @@ class UnoEnv(gym.Env):
     def seed(self, seed: Optional[int] = None):
         self.np_random, seed = seeding.np_random(seed)
         random.seed(seed)
+        print(f"SEED: {seed}")
         return [seed]
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None) -> Tuple[np.ndarray, dict]:
@@ -160,11 +161,8 @@ class UnoEnv(gym.Env):
         reward += REWARD_STEP
 
         # check win
-        if len(self.hands[self.current_player]) == 0:
-            if self.current_player == 0:
-                reward += REWARD_WIN  # agent win
-            else:
-                reward += -len(self.hands[0])  # opponent won
+        if len(self.hands[0]) == 0:
+            reward += REWARD_WIN  # agent win
             done = True
             return self._encode_obs(), reward, done, {}
 
