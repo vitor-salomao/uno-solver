@@ -28,7 +28,7 @@ Welcome to **UNO-Solver**, your go-to CLI tool for finding the optimal UNO card 
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/uno-solver.git
+git clone https://github.com/vitor-salomao/uno-solver.git
 cd uno-solver
 
 # Install dependencies
