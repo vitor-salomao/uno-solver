@@ -1,6 +1,6 @@
 # 🎉 UNO-Solver v1.0
 
-![Release](https://img.shields.io/badge/release-v1.0-blue) ![Python](https://img.shields.io/badge/python-3.8%2B-green) [![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](./LICENSE)
+![Release](https://img.shields.io/badge/release-v1.0-blue) ![Python](https://img.shields.io/badge/python-3.8%2B-yellow) [![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](./LICENSE)
 
 **Created by Vitor Salomão & Andrew Sykes**
 
