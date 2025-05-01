@@ -6,7 +6,7 @@
 
 Welcome to **UNO-Solver**, your go-to CLI tool for finding the optimal UNO card play using deep reinforcement learning!
 
----
+
 
 ## 🚀 Features
 
@@ -22,7 +22,7 @@ Welcome to **UNO-Solver**, your go-to CLI tool for finding the optimal UNO card 
 - **🔧 Extensible**  
   Easily plug in new reward functions, opponent policies, or state encodings.
 
----
+
 
 ## 💾 Installation
 
@@ -35,7 +35,7 @@ cd uno-solver
 pip install -r requirements.txt
 ```
 
----
+
 
 ## 🎮 Usage
 
@@ -63,14 +63,10 @@ python suggest.py \
 # Output: ▶️ Play B2 (Blue 2)
 ```
 
----
-
 ## 📊 Metrics & Logs
 
 - **Win Rate**: Track your AI’s performance over time in `logs/`.
 - **Action Balance**: Monitor plays vs draws to ensure strategic diversity.
-
----
 
 ## 🤝 Contributing
 
@@ -81,7 +77,6 @@ We welcome changes! To contribute:
 
 Please adhere to our code style and include tests for new functionality.
 
----
 
 ## 📝 License
 
