@@ -39,27 +39,12 @@ pip install -r requirements.txt
 
 ## 🎮 Usage
 
-### 1. Train a new model
-```bash
-python train.py \
-    --episodes 20000 \
-    --batch-size 128 \
-    --gamma 0.90
-```
-
-### 2. Play with your trained AI
-```bash
-python play.py \
-    --model-path path/to/uno_dqn.pth \
-    --games 100 \
-    --render
-```
-
-### 3. Get a one-off suggestion
+### Get a suggestion
 ```bash
 python suggest.py \
     --hand "R5 Gskip B2" \
-    --top-card "Y7"
+    --opp-cards "5 4 7" \
+    --top-card "B7"
 # Output: ▶️ Play B2 (Blue 2)
 ```
 
