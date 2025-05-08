@@ -41,6 +41,8 @@ pip install -r requirements.txt
 
 ### Get a suggestion
 ```bash
+pip install -r requirements.txt
+
 python suggest.py \
     --hand "R5 Gskip B2" \
     --opp-cards "5 4 7" \
