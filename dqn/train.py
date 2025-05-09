@@ -1,9 +1,9 @@
 import torch
-from gym_env import UnoEnv
+from gym_env import UnoEnv, AGGRESSIVE_OPPONENT, STACK_CARDS
 from model import DQNAgent
 
 # HYPER-PARAMETERS
-NUM_EPISODES = 2500
+NUM_EPISODES = 10000
 BATCH_SIZE = 128
 TARGET_UPDATE = 1000  # steps
 EPS_START = 1.0
@@ -15,13 +15,22 @@ DISCOUNT_FACTOR = 0.90
 LEARNING_RATE = 1e-4
 DROPOUT = 0.1
 
-SAVE_FILE = "uno_dqn.pth"
+PREVIOUS_WEIGHTS = "uno_dqn.pth"
+SAVE_FILE = "uno_dqn1.pth"
+USE_PREVIOUS_WEIGHTS = False
 
 play_counts, draw_counts = [], []
 
 def main():
-    env = UnoEnv()
+    env = UnoEnv(agg_opp=AGGRESSIVE_OPPONENT, stack=STACK_CARDS)
     agent = DQNAgent(state_dim=219, action_dim=109, lr=LEARNING_RATE, gamma=DISCOUNT_FACTOR, dropout=DROPOUT)
+
+    if USE_PREVIOUS_WEIGHTS:
+        checkpoint = torch.load(PREVIOUS_WEIGHTS)
+        agent.policy_net.load_state_dict(checkpoint)
+        agent.target_net.load_state_dict(checkpoint)
+        print(f"✅ Loaded pretrained weights from file \"{PREVIOUS_WEIGHTS}\", starting fine-tuning…")
+
     total_steps = 0
 
     for ep in range(1, NUM_EPISODES + 1):
