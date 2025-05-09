@@ -1,13 +1,13 @@
 import torch
-from gym_env import UnoEnv
+from gym_env import UnoEnv, AGGRESSIVE_OPPONENT, STACK_CARDS
 from model import QNetwork, DQNAgent
 
-NUM_GAMES = 3000
+NUM_GAMES = 10000
 LOG_ACTIONS = NUM_GAMES == 1
 MODEL_FILE = "uno_dqn.pth"
 
 def play_one_game(policy_path=MODEL_FILE):
-    env = UnoEnv(log=LOG_ACTIONS)
+    env = UnoEnv(log=LOG_ACTIONS, agg_opp=AGGRESSIVE_OPPONENT, stack=STACK_CARDS)
     net = QNetwork(state_dim=219, action_dim=109)
     agent = DQNAgent(state_dim=219, action_dim=109)
     agent.policy_net = net  # inject your network

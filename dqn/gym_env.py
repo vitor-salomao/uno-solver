@@ -8,12 +8,16 @@ from gym import spaces
 from gym.utils import seeding
 
 # PARAMETERS
+AGGRESSIVE_OPPONENT = True
+STACK_CARDS = True
+# REWARDS
 REWARD_WIN = 15.0
-REWARD_LOSE_FLAT = 0.0
-REWARD_LOSE_MULT = 0.5  # this * number of cards left
+REWARD_LOSE_FLAT = -1.0
+REWARD_LOSE_MULT = 0.95   # this * number of cards left
 REWARD_LEGAL = 4.0
-REWARD_ILLEGAL = -2.0
-REWARD_DRAW = -7.5
+REWARD_STACK = 6.0
+REWARD_STACK_MISS = -2.0
+REWARD_DRAW = -5.5
 REWARD_STEP = -0.05
 
 # card struct
@@ -86,15 +90,18 @@ class Deck:
 class UnoEnv(gym.Env):
     metadata = {"render.modes": []}
 
-    def __init__(self, log = False):
+    def __init__(self, log = False, agg_opp = False, stack = False):
         super().__init__()
         self.log = log
+        self.agg_opp = agg_opp
+
         # state: hand (108 hot) + top card (108 hot) + 3 opp counts
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(108 + 108 + 3,), dtype=np.float32
         )
         # 108 possible plays + 1 draw action
         self.action_space = spaces.Discrete(109)
+
         self.seed()
         self.deck = None
         self.hands = None
@@ -102,6 +109,11 @@ class UnoEnv(gym.Env):
         self.top = None
         self.current_player = 0
         self.direction = 1
+
+        # stacking
+        self.pending_draw = 0
+        self.pending_type = None
+        self.stack = stack
 
     def seed(self, seed: Optional[int] = None):
         self.np_random, seed = seeding.np_random(seed)
@@ -116,7 +128,10 @@ class UnoEnv(gym.Env):
         self.discard_pile = deque()
         self.top = self.deck.draw(1)[0]
         self.discard_pile.append(self.top)
+        self.direction = 1
         self.current_player = 0
+        self.pending_draw = 0
+        self.pending_type = None
 
         obs = self._encode_obs()
         info = {} # fill for info
@@ -132,36 +147,57 @@ class UnoEnv(gym.Env):
           4. Check for end‐of‐game and assign rewards.
         """
         hand = self.hands[self.current_player]
-        done = False
+        done, info = False, {}
         reward = 0.0
-        played_card, bought_card, winner = None, None, None
+        played_card, bought_card = None, None
 
-        # play
-        if action < len(hand):
-            card = hand[action]
-            if not self._is_playable(card):
-                # illegal move penalized
-                reward += REWARD_ILLEGAL
-                done = True
-                return self._encode_obs(), reward, done, {"card": card}
-            reward += REWARD_LEGAL
-            self._play_card(self.current_player, card)
-            played_card = card
+        # stacking +4 and +2
+        if self.stack and self.pending_draw > 0:
+            # the card stacks and adds to pending
+            if action < len(hand) and hand[action].value == self.pending_type:
+                card = hand[action]
+                self._play_card(self.current_player, card)
+                reward += REWARD_STACK
+                add = 4 if card.value == 'wild_draw_four' else 2
+                self.pending_draw += add
+                if self.log: print(f"▶️ AGENT played and stacked {card}")
+
+            # else, draw the pending amount
+            else:
+                self._draw_cards(self.current_player, self.pending_draw)
+                if self.log: print(f"▶️ AGENT drew {self.pending_draw}")
+                reward += -self.pending_draw + REWARD_STACK_MISS
+                self.pending_draw = 0
+                self.pending_type = None
+                self._advance_to_next()
+
+        # nothing stack related, just play normal
         else:
-            # draw action
-            reward += REWARD_DRAW
-            drawn = self._draw_cards(self.current_player, 1)
-            bought_card = drawn[0]
-            # if drawn[0] is playable, play it
-            if self._is_playable(drawn[0]):
+            if action < len(hand):
+                card = hand[action]
                 reward += REWARD_LEGAL
-                self._play_card(self.current_player, drawn[0])
-                played_card = drawn[0]
-            self._advance_to_next()
+                self._play_card(self.current_player, card)
+                if self.log: print(f"▶️ AGENT played {card}")
+                played_card = card
+            else:
+                # draw action
+                reward += REWARD_DRAW
+                drawn = self._draw_cards(self.current_player, 1)
+                bought_card = drawn[0]
+
+                # if drawn[0] is playable, play it
+                if self._is_playable(drawn[0]):
+                    reward += REWARD_LEGAL
+                    self._play_card(self.current_player, drawn[0])
+                    played_card = drawn[0]
+                    if self.log: print(f"▶️ AGENT drew and played {bought_card}")
+                else:
+                    if self.log: print(f"▶️ AGENT drew {bought_card}")
+                    self._advance_to_next()
 
         reward += REWARD_STEP
+        info = {"card": played_card, "bought": bought_card, "winner": None}
 
-        info = {"card": played_card, "bought": bought_card, "winner": winner}
         # check win
         if len(self.hands[0]) == 0:
             reward += REWARD_WIN  # agent won
@@ -191,10 +227,9 @@ class UnoEnv(gym.Env):
         vec_top = np.zeros(108, dtype=np.float32)
         vec_top[top.index] = 1.0
 
-        opp_counts = np.array(
-            [len(self.hands[(self.current_player + i) % 4]) for i in (1,2,3)],
-            dtype=np.float32
-        )
+        # direction-based opponent card counts
+        offsets = [(self.current_player + self.direction * i) % 4 for i in (1, 2, 3)]
+        opp_counts = np.array([len(self.hands[p]) for p in offsets], dtype=np.float32)
         return np.concatenate([vec_hand, vec_top, opp_counts])
 
     def legal_actions(self) -> List[int]:
@@ -219,7 +254,7 @@ class UnoEnv(gym.Env):
             else:
                 print(f"Opponent {i}: {len(hand)} cards")
 
-    # ============= helper functions for game loop =============
+    # ============= helper functions for game loop ============= #
     def _is_playable(self, card: Card) -> bool:
         """True if color matches or value matches or card is wild."""
         top = self.top
@@ -245,21 +280,31 @@ class UnoEnv(gym.Env):
             self.direction *= -1
             self._advance_to_next()
         elif card.value == 'draw_two':
-            target = (self.current_player + self.direction) % 4
-            self._draw_cards(target, 2)
-            self._advance_to_next()
-            self._advance_to_next()
+            if self.stack:
+                self.pending_draw += 2
+                self.pending_type = 'draw_two'
+                self._advance_to_next()
+            else:
+                target = (self.current_player + self.direction) % 4
+                self._draw_cards(target, 2)
+                self._advance_to_next()
+                self._advance_to_next()
         elif card.value == 'wild':
             chosen = self._choose_color(self.hands[self.current_player])
             self.top.color = chosen
             self._advance_to_next()
         elif card.value == 'wild_draw_four':
-            target = (self.current_player + self.direction) % 4
-            self._draw_cards(target, 4)
             chosen = self._choose_color(self.hands[self.current_player])
             self.top.color = chosen
-            self._advance_to_next()
-            self._advance_to_next()
+            if self.stack:
+                self.pending_draw += 4
+                self.pending_type = 'wild_draw_four'
+                self._advance_to_next()
+            else:
+                target = (self.current_player + self.direction) % 4
+                self._draw_cards(target, 4)
+                self._advance_to_next()
+                self._advance_to_next()
         else:
             self._advance_to_next()
 
@@ -269,8 +314,8 @@ class UnoEnv(gym.Env):
 
     def _draw_cards(self, player_idx: int, n: int):
         """
-        Draw n cards for a given player.
-        If deck runs out, reshuffle discard pile (except top).
+        Draw n cards for a given player
+        If deck runs out, reshuffle discard pile (except top)
         """
         # reshuffle if needed
         if len(self.deck) < n:
@@ -285,7 +330,7 @@ class UnoEnv(gym.Env):
         return cards
 
     def _choose_color(self, hand: List[Card]) -> str:
-        """Heuristic: pick the color you have most of."""
+        """Heuristic: pick the color you have most of"""
         counts = Counter(c.color for c in hand if c.color != 'wild')
         if not counts:
             # only wild cards
@@ -293,19 +338,54 @@ class UnoEnv(gym.Env):
         return counts.most_common(1)[0][0]
 
     def _opponent_play(self, player_idx: int):
-        """
-        A simple rule-based opponent:
-          - scan hand for first playable card; else draw.
-        """
-        for i, card in enumerate(self.hands[player_idx]):
-            if self._is_playable(card):
+        """Simulate opponent play, either random or aggressive"""
+        hand = self.hands[player_idx]
+        playable = [c for c in hand if self._is_playable(c)]
+
+        # stacking opponent - notices stack opportunities
+        if self.stack and self.pending_draw > 0:
+            stack_cards = [c for c in self.hands[player_idx] if c.value == self.pending_type]
+            if stack_cards:
+                card = random.choice(stack_cards)
                 self._play_card(player_idx, card)
-                if self.log: print(f"-- Player {player_idx} played {card}")
+                if self.log: print(f"-- Player {player_idx} stacked {card}")
                 return
-        # no playable card, just draw and move on
-        self._draw_cards(player_idx, 1)
-        if self.log: print(f"-- Player {player_idx} bought {self.hands[player_idx][-1]}")
-        self._advance_to_next()
+
+            self._draw_cards(player_idx, self.pending_draw)
+            if self.log: print(f"-- Player {player_idx} drew {self.pending_draw} cards")
+            self.pending_draw = 0
+            self.pending_type = None
+            self._advance_to_next()
+            return
+
+        # aggressive opponent - prioritize attacking cards
+        if self.agg_opp and playable:
+            # priority list
+            priority = ['wild_draw_four', 'draw_two', 'skip']
+            # try to find best cards
+            for val in priority:
+                candidates = [c for c in playable if c.value == val]
+                if candidates:
+                    card = random.choice(candidates)
+                    self._play_card(player_idx, card)
+                    if self.log: print(f"-- Player {player_idx} AGGRESSIVELY played {card}")
+                    return
+
+        # regular opponent - random valid card
+        if playable:
+            card = random.choice(playable)
+            self._play_card(player_idx, card)
+            if self.log: print(f"-- Player {player_idx} played {card}")
+            return
+
+        # no playable card, draw and check
+        cards = self._draw_cards(player_idx, 1)
+        if self._is_playable(cards[0]):
+            self._play_card(player_idx, cards[0])
+            if self.log: print(f"-- Player {player_idx} bought and played {cards[0]}")
+        else:
+            if self.log: print(f"-- Player {player_idx} bought {hand[-1]}")
+            self._advance_to_next()
 
     def _play_card(self, player_idx: int, card: Card):
         self.hands[player_idx].remove(card)
