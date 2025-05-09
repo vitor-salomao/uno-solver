@@ -4,7 +4,7 @@ from model import QNetwork, DQNAgent
 
 NUM_GAMES = 10000
 LOG_ACTIONS = NUM_GAMES == 1
-MODEL_FILE = "uno_dqn1.pth"
+MODEL_FILE = "uno_dqn.pth"
 
 def play_one_game(policy_path=MODEL_FILE):
     env = UnoEnv(log=LOG_ACTIONS, agg_opp=AGGRESSIVE_OPPONENT, stack=STACK_CARDS)

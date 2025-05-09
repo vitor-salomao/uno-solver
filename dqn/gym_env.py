@@ -13,11 +13,11 @@ STACK_CARDS = True
 # REWARDS
 REWARD_WIN = 15.0
 REWARD_LOSE_FLAT = -1.0
-REWARD_LOSE_MULT = -0.5  # this * number of cards left
+REWARD_LOSE_MULT = 0.95   # this * number of cards left
 REWARD_LEGAL = 4.0
 REWARD_STACK = 6.0
 REWARD_STACK_MISS = -2.0
-REWARD_DRAW = -7.5
+REWARD_DRAW = -5.5
 REWARD_STEP = -0.05
 
 # card struct
