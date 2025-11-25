@@ -10,6 +10,11 @@ from gym_env import UnoEnv
 Transition = namedtuple('Transition',
                         ('state','action','reward','next_state','done'))
 
+# HYPER-PARAMETERS
+LEARNING_RATE = 1e-4
+GAMMA = 0.9
+DROPOUT = 0.3
+
 # network
 class QNetwork(nn.Module):
     def __init__(self, state_dim=219, action_dim=109, dropout=0.1):
@@ -43,7 +48,7 @@ class ReplayBuffer:
 
 # agent for deep q-learning
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, lr=1e-4, gamma=0.99, dropout=0.1):
+    def __init__(self, state_dim, action_dim, lr=LEARNING_RATE, gamma=GAMMA, dropout=DROPOUT):
         self.policy_net = QNetwork(state_dim, action_dim, dropout)
         self.target_net = QNetwork(state_dim, action_dim, dropout)
         self.target_net.load_state_dict(self.policy_net.state_dict())
