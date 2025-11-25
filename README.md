@@ -41,19 +41,12 @@ pip install -r requirements.txt
 
 ### Get a suggestion
 ```bash
-pip install -r requirements.txt
-
 python suggest.py \
     --hand "R5 Gskip B2" \
     --opp-cards "5 4 7" \
     --top-card "B7"
 # Output: ▶️ Play B2 (Blue 2)
 ```
-
-## 📊 Metrics & Logs
-
-- **Win Rate**: Track your AI’s performance over time in `logs/`.
-- **Action Balance**: Monitor plays vs draws to ensure strategic diversity.
 
 ## 🤝 Contributing
 
@@ -73,6 +66,3 @@ This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for d
 
 *May the best card always be in your hand!* 🎴
 
-
-Notes (to be deleted):
-https://drive.google.com/drive/folders/1hPEmYWj5hxssJRlf7aEcNG5fj5fEL_GG?usp=sharing
